@@ -48,6 +48,7 @@ class GecPair:
 
         self.aGec = aGec
         self.bGec = bGec
+        self._massScalar = 1 / (self.aGec.inverseMass + self.bGec.inverseMass)
 
     def advance(self):
 
@@ -58,7 +59,6 @@ class GecPair:
             (centerDistance - (self.aGec.radius + self.bGec.radius))
             * inverseTimestep
             )
-        self._massScalar = 1 / (self.aGec.inverseMass + self.bGec.inverseMass)
         self._appliedImpulse = 0
 
     def getVelocityCushion(self):
