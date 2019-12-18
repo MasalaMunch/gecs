@@ -31,8 +31,8 @@ class Gec:
 
     def advance(self):
 
-        self.position += self.velocity*timestep
-        self.velocity += self.acceleration*timestep
+        self.position += self.velocity * timestep
+        self.velocity += self.acceleration * timestep
 
     def applyImpulse(self, impulseVector):
 
@@ -79,7 +79,7 @@ class GecPair:
     #^ used to compute approximate results
 
         self.applyImpulse(min(
-            self._massScalar*self.getVelocityCushion() + self._appliedImpulse, 
+            self._massScalar * self.getVelocityCushion() + self._appliedImpulse, 
             0.0,
             ) - self._appliedImpulse)
 
@@ -117,7 +117,7 @@ def getTestGecs():
     radius = 15
     for i in range(int((resolution[1]-(bigRadius-bigOffset))/(2*radius))):
         gecs.append(Gec(mass=1, radius=radius, color=purple, 
-            position=(resolution[0]/2, (bigRadius-bigOffset) + (i+1)*(2*radius+75)),
+            position=(resolution[0]/2, (bigRadius-bigOffset)+(i+1)*(2*radius+75)),
             acceleration=(0, -250),
             ))
     return gecs
