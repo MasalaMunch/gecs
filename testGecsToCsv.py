@@ -9,6 +9,9 @@ resolution = (1280, 720)
 timestep = 1/30
 inverseTimestep = 1/timestep
 
+simulationTime = 20
+simulationSteps = int(simulationTime / timestep)
+
 class Gec:
 
     def __init__(self, mass=None, radius=None, color=None, 
@@ -122,21 +125,75 @@ def getTestGecs():
             ))
     return gecs
 
+testName = "optimal"
+# the part done in gams
+startTime = time.time()
 gecs = getTestGecs()
+gecPairs = getGecPairs(gecs)
+gecPairsWithGec = {
+    g: tuple((i, p) for i, p in enumerate(gecPairs) if p.aGec == g or p.bGec == g)
+    for g in gecs
+    }
 
-with open('testGecsData.csv', mode='w') as csv_file:
-    fieldnames = ['', 'inverseMass', 'radius', 'color', 'velocityx', 'velocityy', 'accelerationx', 'accelerationy', 'positionx', 'positiony']
-    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-    writer.writeheader()
+q = np.ones(len(gecPairs))
 
-    for i,g in enumerate(gecs):    
-        writer.writerow({'':f"g{i+1}", 'inverseMass': g.inverseMass, 'radius': g.radius, 'color': g.color[0], 
-        'velocityx': g.velocity[0], 'velocityy': g.velocity[1], 
-        'accelerationx': g.acceleration[0], 'accelerationy': g.acceleration[1], 
-        'positionx': g.position[0], 'positiony': g.position[1]})
+# 0 is not
+h = np.zeros(2*len(gecPairs))
+P = np.ones((len(gecPairs), len(gecPairs)))
+G = np.ones((2*len(gecPairs), len(gecPairs)))
 
-    # dummy row since gams deletes columns with all-zero values, causing errors
-    writer.writerow({'':'gbad', 'inverseMass': 100000000000000000000, 'radius': 0, 'color': 0.9, 
-    'velocityx': 0.000001, 'velocityy': 0.000001, 
-    'accelerationx': 0.000001, 'accelerationy': 0.000001, 
-    'positionx': 0, 'positiony': 0})
+for i, p in enumerate(gecPairs):
+    P[i, i] = 2*p.inverseMassScalar
+
+    # div by mass converts impuse into velocity change
+    G[i, i] = -p.inverseMassScalar
+
+    # bottom half of G is the negative of the identity matrix
+    G[i+len(gecPairs), i] = -1.0
+
+stepGecPositions = []
+for i in range(simulationSteps):
+    print(str(round(i/simulationSteps*100, 2))+"%", "through", testName)
+    stepGecPositions.append([])
+    for g in gecs:
+        stepGecPositions[-1].append(tuple(g.position))
+    for i, p in enumerate(gecPairs):
+        cushion = p.getVelocityCushion()
+        q[i] = cushion
+        h[i] = cushion
+        for j, otherP in gecPairsWithGec[p.aGec]:
+            if i != j:
+                # pairs of pairs that share a gec (aGec)
+                # calculate how much impule affects otherP's velocity
+                scalar = p.getImpulseToVelocityScalar(otherP, p.aGec)
+                doubleScalar = 2*scalar
+                P[i, j] = doubleScalar
+                P[j, i] = -doubleScalar
+                G[i, j] = -scalar
+                G[j, i] = scalar
+        for j, otherP in gecPairsWithGec[p.bGec]:
+            if i != j:
+                scalar = p.getImpulseToVelocityScalar(otherP, p.bGec)
+                doubleScalar = 2*scalar
+                P[i, j] = doubleScalar
+                P[j, i] = -doubleScalar
+                G[i, j] = -scalar
+                G[j, i] = scalar
+print(h)
+
+# with open('testGecsData.csv', mode='w') as csv_file:
+#     fieldnames = ['', 'inverseMass', 'radius', 'color', 'velocityx', 'velocityy', 'accelerationx', 'accelerationy', 'positionx', 'positiony']
+#     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+#     writer.writeheader()
+
+#     for i,g in enumerate(gecs):    
+#         writer.writerow({'':f"g{i+1}", 'inverseMass': g.inverseMass, 'radius': g.radius, 'color': g.color[0], 
+#         'velocityx': g.velocity[0], 'velocityy': g.velocity[1], 
+#         'accelerationx': g.acceleration[0], 'accelerationy': g.acceleration[1], 
+#         'positionx': g.position[0], 'positiony': g.position[1]})
+
+#     # dummy row since gams deletes columns with all-zero values, causing errors
+#     writer.writerow({'':'gbad', 'inverseMass': 100000000000000000000, 'radius': 0, 'color': 0.9, 
+#     'velocityx': 0.000001, 'velocityy': 0.000001, 
+#     'accelerationx': 0.000001, 'accelerationy': 0.000001, 
+#     'positionx': 0, 'positiony': 0})
