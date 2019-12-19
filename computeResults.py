@@ -211,26 +211,26 @@ for i in range(simulationSteps):
     stepGecPositions.append([])
     for g in gecs:
         stepGecPositions[-1].append(tuple(g.position))
-    for i, p in enumerate(gecPairs):
+    for j, p in enumerate(gecPairs):
         cushion = p.getVelocityCushion()
-        q[i] = cushion
-        h[i] = cushion
-        for j, otherP in gecPairsWithGec[p.aGec]:
-            if i != j:
+        q[j] = cushion
+        h[j] = cushion
+        for k, otherP in gecPairsWithGec[p.aGec]:
+            if j != k:
                 scalar = p.getImpulseToVelocityScalar(otherP, p.aGec)
                 doubleScalar = 2*scalar
-                P[i, j] = doubleScalar
-                P[j, i] = -doubleScalar
-                G[i, j] = -scalar
-                G[j, i] = scalar
-        for j, otherP in gecPairsWithGec[p.bGec]:
-            if i != j:
+                P[j, k] = doubleScalar
+                P[k, j] = -doubleScalar
+                G[j, k] = -scalar
+                G[k, j] = scalar
+        for k, otherP in gecPairsWithGec[p.bGec]:
+            if j != k:
                 scalar = p.getImpulseToVelocityScalar(otherP, p.bGec)
                 doubleScalar = 2*scalar
-                P[i, j] = doubleScalar
-                P[j, i] = -doubleScalar
-                G[i, j] = -scalar
-                G[j, i] = scalar
+                P[j, k] = doubleScalar
+                P[k, j] = -doubleScalar
+                G[j, k] = -scalar
+                G[k, j] = scalar
     for p, impulse in zip(gecPairs, cvxopt.solvers.qp(P, q, G=G, h=h)["x"]):
         p.applyImpulse(-impulse)
     for g in gecs:
