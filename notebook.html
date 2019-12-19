@@ -13230,284 +13230,253 @@ $$<ul>
 </div>
 </div>
 </div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[2]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">random</span>
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">cvxopt</span>
-<span class="n">cvxopt</span><span class="o">.</span><span class="n">solvers</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;show_progress&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
 
-<span class="n">timestep</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">30</span>
-<span class="n">inverseTimestep</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">timestep</span>
+<pre><code>import numpy as np
+import random
+import time
+import json
+import cvxopt
+cvxopt.solvers.options['show_progress'] = False
 
-<span class="k">class</span> <span class="nc">Gec</span><span class="p">:</span>
+timestep = 1/30
+inverseTimestep = 1/timestep
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
-                 <span class="n">position</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">velocity</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">acceleration</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
+class Gec:
 
-        <span class="k">assert</span> <span class="n">mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">inverseMass</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">mass</span>
+    def __init__(self, mass=None, radius=None, color=None, 
+                 position=None, velocity=(0, 0), acceleration=(0, 0)):
 
-        <span class="k">assert</span> <span class="n">radius</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="n">radius</span>
+        assert mass is not None
+        self.inverseMass = 1 / mass
 
-        <span class="k">assert</span> <span class="n">color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">color</span>
+        assert radius is not None
+        self.radius = radius
 
-        <span class="k">assert</span> <span class="n">position</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">position</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        assert color is not None
+        self.color = color
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">velocity</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        assert position is not None
+        self.position = np.array(position).astype(float)
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceleration</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">acceleration</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        self.velocity = np.array(velocity).astype(float)
 
-    <span class="k">def</span> <span class="nf">advance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        self.acceleration = np.array(acceleration).astype(float)
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">*</span> <span class="n">timestep</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceleration</span> <span class="o">*</span> <span class="n">timestep</span>
+    def advance(self):
 
-    <span class="k">def</span> <span class="nf">applyImpulse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">impulseVector</span><span class="p">):</span>
+        self.position += self.velocity * timestep
+        self.velocity += self.acceleration * timestep
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">+=</span> <span class="n">impulseVector</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">inverseMass</span>
+    def applyImpulse(self, impulseVector):
 
-<span class="k">class</span> <span class="nc">GecPair</span><span class="p">:</span>
+        self.velocity += impulseVector * self.inverseMass
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aGec</span><span class="p">,</span> <span class="n">bGec</span><span class="p">):</span>
+class GecPair:
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">aGec</span> <span class="o">=</span> <span class="n">aGec</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bGec</span> <span class="o">=</span> <span class="n">bGec</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">inverseMassScalar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aGec</span><span class="o">.</span><span class="n">inverseMass</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bGec</span><span class="o">.</span><span class="n">inverseMass</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_massScalar</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">inverseMassScalar</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_radiiSum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aGec</span><span class="o">.</span><span class="n">radius</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bGec</span><span class="o">.</span><span class="n">radius</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">advance</span><span class="p">()</span>
+    def __init__(self, aGec, bGec):
 
-    <span class="k">def</span> <span class="nf">advance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        self.aGec = aGec
+        self.bGec = bGec
+        self.inverseMassScalar = self.aGec.inverseMass + self.bGec.inverseMass
+        self._massScalar = 1 / self.inverseMassScalar
+        self._radiiSum = self.aGec.radius + self.bGec.radius
+        self.advance()
 
-        <span class="n">centerDifference</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bGec</span><span class="o">.</span><span class="n">position</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">aGec</span><span class="o">.</span><span class="n">position</span>
-        <span class="n">centerDistance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">centerDifference</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_direction</span> <span class="o">=</span> <span class="n">centerDifference</span> <span class="o">/</span> <span class="n">centerDistance</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_distanceComponentOfVelocityCushion</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">(</span><span class="n">centerDistance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_radiiSum</span><span class="p">)</span> <span class="o">*</span> <span class="n">inverseTimestep</span>
-            <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_appliedImpulse</span> <span class="o">=</span> <span class="mi">0</span>
+    def advance(self):
 
-    <span class="k">def</span> <span class="nf">getVelocityCushion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># if negative: how much you need to fix it in velocity units</span>
-        <span class="c1"># if positive: how much extra velocity</span>
+        centerDifference = self.bGec.position - self.aGec.position
+        centerDistance = np.linalg.norm(centerDifference)
+        self._direction = centerDifference / centerDistance
+        self._distanceComponentOfVelocityCushion = (
+            (centerDistance - self._radiiSum) * inverseTimestep
+            )
+        self._appliedImpulse = 0
 
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="c1"># distance component: vel needed to colide ina time stop</span>
+    def getVelocityCushion(self):
+        # if negative: how much you need to fix it in velocity units
+        # if positive: how much extra velocity
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">_distanceComponentOfVelocityCushion</span> <span class="o">+</span> 
-            <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bGec</span><span class="o">.</span><span class="n">velocity</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">aGec</span><span class="o">.</span><span class="n">velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_direction</span><span class="p">)</span>
-            <span class="c1">#^ negative =&gt; moving closer to each other, </span>
-            <span class="c1">#  positive =&gt; moving farther away from each other</span>
-            <span class="p">)</span>
+        return (
+            # distance component: vel needed to colide ina time stop
 
-    <span class="k">def</span> <span class="nf">applyImpulse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">impulseScalar</span><span class="p">):</span>
+            self._distanceComponentOfVelocityCushion + 
+            np.dot(self.bGec.velocity - self.aGec.velocity, self._direction)
+            #^ negative =&gt; moving closer to each other, 
+            #  positive =&gt; moving farther away from each other
+            )
 
-        <span class="n">impulseVector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_direction</span> <span class="o">*</span> <span class="n">impulseScalar</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">aGec</span><span class="o">.</span><span class="n">applyImpulse</span><span class="p">(</span><span class="n">impulseVector</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bGec</span><span class="o">.</span><span class="n">applyImpulse</span><span class="p">(</span><span class="o">-</span><span class="n">impulseVector</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_appliedImpulse</span> <span class="o">+=</span> <span class="n">impulseScalar</span>
+    def applyImpulse(self, impulseScalar):
 
-    <span class="k">def</span> <span class="nf">fixVelocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1">#^ used to compute approximate results</span>
+        impulseVector = self._direction * impulseScalar
+        self.aGec.applyImpulse(impulseVector)
+        self.bGec.applyImpulse(-impulseVector)
+        self._appliedImpulse += impulseScalar
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">applyImpulse</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_massScalar</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">getVelocityCushion</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_appliedImpulse</span><span class="p">,</span> 
-            <span class="mf">0.0</span><span class="p">,</span>
-            <span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_appliedImpulse</span><span class="p">)</span>
+    def fixVelocity(self):
+    #^ used to compute approximate results
 
-    <span class="k">def</span> <span class="nf">getImpulseToVelocityScalar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sharedGec</span><span class="p">):</span>
-    <span class="c1">#^ used to compute optimal results</span>
+        self.applyImpulse(min(
+            self._massScalar * self.getVelocityCushion() + self._appliedImpulse, 
+            0.0,
+            ) - self._appliedImpulse)
 
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="p">(</span><span class="mf">1.0</span> <span class="k">if</span> <span class="p">((</span><span class="n">sharedGec</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">aGec</span> <span class="ow">and</span> <span class="n">sharedGec</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">aGec</span><span class="p">)</span> 
-            <span class="ow">or</span> <span class="p">(</span><span class="n">sharedGec</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">bGec</span> <span class="ow">and</span> <span class="n">sharedGec</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">bGec</span><span class="p">))</span> 
-            <span class="k">else</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> 
-            <span class="n">sharedGec</span><span class="o">.</span><span class="n">inverseMass</span> <span class="o">*</span> 
-            <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_direction</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">_direction</span><span class="p">)</span>
-            <span class="p">)</span>
+    def getImpulseToVelocityScalar(self, other, sharedGec):
+    #^ used to compute optimal results
 
-<span class="k">def</span> <span class="nf">getGecPairs</span><span class="p">(</span><span class="n">gecs</span><span class="p">):</span>
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
-        <span class="n">GecPair</span><span class="p">(</span><span class="n">gecs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">gecs</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> 
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gecs</span><span class="p">))</span> 
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">gecs</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">gecs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">inverseMass</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">gecs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">inverseMass</span> <span class="o">!=</span> <span class="mi">0</span>
-        <span class="p">)</span>
+        return (
+            (1.0 if ((sharedGec == self.aGec and sharedGec == other.aGec) 
+            or (sharedGec == self.bGec and sharedGec == other.bGec)) 
+            else -1.0) * 
+            sharedGec.inverseMass * 
+            np.dot(self._direction, other._direction)
+            )
 
-<span class="n">resolution</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1280</span><span class="p">,</span> <span class="mi">720</span><span class="p">)</span>
+def getGecPairs(gecs):
+    return tuple(
+        GecPair(gecs[i], gecs[j]) 
+        for i in range(len(gecs)) 
+        for j in range(i+1, len(gecs))
+        if gecs[i].inverseMass != 0 or gecs[j].inverseMass != 0
+        )
 
-<span class="k">def</span> <span class="nf">getTestGecs</span><span class="p">():</span>
-    <span class="n">white</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-    <span class="n">purple</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-    <span class="n">green</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-    <span class="n">bigRadius</span> <span class="o">=</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">4</span>
-    <span class="n">bigOffset</span> <span class="o">=</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">8</span>
-    <span class="n">gecs</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">Gec</span><span class="p">(</span><span class="n">mass</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;Infinity&quot;</span><span class="p">),</span> <span class="n">radius</span><span class="o">=</span><span class="n">bigRadius</span><span class="o">-</span><span class="n">bigOffset</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">white</span><span class="p">,</span>
-            <span class="n">position</span><span class="o">=</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
-        <span class="p">]</span>
-    <span class="n">radius</span> <span class="o">=</span> <span class="mi">15</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">((</span><span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="p">(</span><span class="n">bigRadius</span><span class="o">-</span><span class="n">bigOffset</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">radius</span><span class="p">))):</span>
-        <span class="n">gecs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Gec</span><span class="p">(</span><span class="n">mass</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">purple</span><span class="p">,</span> 
-            <span class="n">position</span><span class="o">=</span><span class="p">(</span><span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">bigRadius</span><span class="o">-</span><span class="n">bigOffset</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">radius</span><span class="o">+</span><span class="mi">75</span><span class="p">)),</span>
-            <span class="n">acceleration</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">250</span><span class="p">),</span>
-            <span class="p">))</span>
-    <span class="k">return</span> <span class="n">gecs</span>
+resolution = (1280, 720)
 
-<span class="k">def</span> <span class="nf">storeResults</span><span class="p">(</span><span class="n">gecs</span><span class="p">,</span> <span class="n">stepGecPositions</span><span class="p">,</span> <span class="n">testName</span><span class="p">,</span> <span class="n">computeTime</span><span class="p">):</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;results/&quot;</span> <span class="o">+</span> <span class="n">testName</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">resultFile</span><span class="p">:</span>
-        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">({</span>
-            <span class="s2">&quot;computeTime&quot;</span><span class="p">:</span> <span class="n">computeTime</span><span class="p">,</span>
-            <span class="s2">&quot;gecCount&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">gecs</span><span class="p">),</span>
-            <span class="s2">&quot;gecRadii&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">g</span><span class="o">.</span><span class="n">radius</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gecs</span><span class="p">],</span>
-            <span class="s2">&quot;gecColors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">g</span><span class="o">.</span><span class="n">color</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gecs</span><span class="p">],</span>
-            <span class="s2">&quot;timestep&quot;</span><span class="p">:</span> <span class="n">timestep</span><span class="p">,</span>
-            <span class="s2">&quot;stepCount&quot;</span><span class="p">:</span> <span class="n">simulationSteps</span><span class="p">,</span>
-            <span class="s2">&quot;resolution&quot;</span><span class="p">:</span> <span class="n">resolution</span><span class="p">,</span>
-            <span class="s2">&quot;stepGecPositions&quot;</span><span class="p">:</span> <span class="n">stepGecPositions</span><span class="p">,</span>
-            <span class="p">},</span> <span class="n">resultFile</span><span class="p">)</span>
+def getTestGecs():
+    white = (1.0, 1.0, 1.0, 1.0)
+    purple = (0.9, 0.0, 0.9, 1.0)
+    green = (0.0, 0.9, 0.0, 1.0)
+    bigRadius = resolution[0]/4
+    bigOffset = resolution[0]/8
+    gecs = [
+        Gec(mass=float("Infinity"), radius=bigRadius-bigOffset, color=white,
+            position=(resolution[0]/2, 0)),
+        ]
+    radius = 15
+    for i in range(int((resolution[1]-(bigRadius-bigOffset))/(2*radius))):
+        gecs.append(Gec(mass=1, radius=radius, color=purple, 
+            position=(resolution[0]/2, (bigRadius-bigOffset)+(i+1)*(2*radius+75)),
+            acceleration=(0, -250),
+            ))
+    return gecs
 
-<span class="n">simulationTime</span> <span class="o">=</span> <span class="mi">20</span>
-<span class="n">simulationSteps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">simulationTime</span> <span class="o">/</span> <span class="n">timestep</span><span class="p">)</span>
+def storeResults(gecs, stepGecPositions, testName, computeTime):
+    with open("results/" + testName + ".json", "w") as resultFile:
+        json.dump({
+            "computeTime": computeTime,
+            "gecCount": len(gecs),
+            "gecRadii": [g.radius for g in gecs],
+            "gecColors": [g.color for g in gecs],
+            "timestep": timestep,
+            "stepCount": simulationSteps,
+            "resolution": resolution,
+            "stepGecPositions": stepGecPositions,
+            }, resultFile)
 
-<span class="n">testName</span> <span class="o">=</span> <span class="s2">&quot;coarseApproximation&quot;</span>
-<span class="n">startTime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-<span class="n">gecs</span> <span class="o">=</span> <span class="n">getTestGecs</span><span class="p">()</span>
-<span class="n">gecPairs</span> <span class="o">=</span> <span class="n">getGecPairs</span><span class="p">(</span><span class="n">gecs</span><span class="p">)</span>
-<span class="n">stepGecPositions</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">simulationSteps</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">i</span><span class="o">/</span><span class="n">simulationSteps</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;%&quot;</span><span class="p">,</span> <span class="s2">&quot;through&quot;</span><span class="p">,</span> <span class="n">testName</span><span class="p">)</span>
-    <span class="n">stepGecPositions</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
-    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gecs</span><span class="p">:</span>
-        <span class="n">stepGecPositions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">position</span><span class="p">))</span>
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
-    <span class="c1">#^ for the coarsest approximation, only do 1 iteration</span>
-        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">gecPairs</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">fixVelocity</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gecs</span><span class="p">:</span>
-        <span class="n">g</span><span class="o">.</span><span class="n">advance</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">gecPairs</span><span class="p">:</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">advance</span><span class="p">()</span>
-<span class="n">storeResults</span><span class="p">(</span><span class="n">gecs</span><span class="p">,</span> <span class="n">stepGecPositions</span><span class="p">,</span> <span class="n">testName</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">startTime</span><span class="p">)</span>
+simulationTime = 20
+simulationSteps = int(simulationTime / timestep)
 
-<span class="n">testName</span> <span class="o">=</span> <span class="s2">&quot;fineApproximation&quot;</span>
-<span class="n">startTime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-<span class="n">gecs</span> <span class="o">=</span> <span class="n">getTestGecs</span><span class="p">()</span>
-<span class="n">gecPairs</span> <span class="o">=</span> <span class="n">getGecPairs</span><span class="p">(</span><span class="n">gecs</span><span class="p">)</span>
-<span class="n">stepGecPositions</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">simulationSteps</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">i</span><span class="o">/</span><span class="n">simulationSteps</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;%&quot;</span><span class="p">,</span> <span class="s2">&quot;through&quot;</span><span class="p">,</span> <span class="n">testName</span><span class="p">)</span>
-    <span class="n">stepGecPositions</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
-    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gecs</span><span class="p">:</span>
-        <span class="n">stepGecPositions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">position</span><span class="p">))</span>
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
-    <span class="c1">#^ for the finer approximation, do 4 iterations</span>
-        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">gecPairs</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">fixVelocity</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gecs</span><span class="p">:</span>
-        <span class="n">g</span><span class="o">.</span><span class="n">advance</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">gecPairs</span><span class="p">:</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">advance</span><span class="p">()</span>
-<span class="n">storeResults</span><span class="p">(</span><span class="n">gecs</span><span class="p">,</span> <span class="n">stepGecPositions</span><span class="p">,</span> <span class="n">testName</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">startTime</span><span class="p">)</span>
+testName = "coarseApproximation"
+startTime = time.time()
+gecs = getTestGecs()
+gecPairs = getGecPairs(gecs)
+stepGecPositions = []
+for i in range(simulationSteps):
+    print(str(round(i/simulationSteps*100, 2))+"%", "through", testName)
+    stepGecPositions.append([])
+    for g in gecs:
+        stepGecPositions[-1].append(tuple(g.position))
+    for j in range(1):
+    #^ for the coarsest approximation, only do 1 iteration
+        for p in gecPairs:
+            p.fixVelocity()
+    for g in gecs:
+        g.advance()
+    for p in gecPairs:
+        p.advance()
+storeResults(gecs, stepGecPositions, testName, time.time()-startTime)
 
-<span class="n">testName</span> <span class="o">=</span> <span class="s2">&quot;optimal&quot;</span>
-<span class="c1"># the part done in gams</span>
-<span class="n">startTime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-<span class="n">gecs</span> <span class="o">=</span> <span class="n">getTestGecs</span><span class="p">()</span>
-<span class="n">gecPairs</span> <span class="o">=</span> <span class="n">getGecPairs</span><span class="p">(</span><span class="n">gecs</span><span class="p">)</span>
-<span class="n">gecPairsWithGec</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="n">g</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">aGec</span> <span class="o">==</span> <span class="n">g</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">bGec</span> <span class="o">==</span> <span class="n">g</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gecs</span>
-    <span class="p">}</span>
+testName = "fineApproximation"
+startTime = time.time()
+gecs = getTestGecs()
+gecPairs = getGecPairs(gecs)
+stepGecPositions = []
+for i in range(simulationSteps):
+    print(str(round(i/simulationSteps*100, 2))+"%", "through", testName)
+    stepGecPositions.append([])
+    for g in gecs:
+        stepGecPositions[-1].append(tuple(g.position))
+    for j in range(4):
+    #^ for the finer approximation, do 4 iterations
+        for p in gecPairs:
+            p.fixVelocity()
+    for g in gecs:
+        g.advance()
+    for p in gecPairs:
+        p.advance()
+storeResults(gecs, stepGecPositions, testName, time.time()-startTime)
 
-<span class="c1"># 7 is arbitrary</span>
-<span class="n">q</span> <span class="o">=</span> <span class="n">cvxopt</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="mf">7.0</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+testName = "optimal"
+# the part done in gams
+startTime = time.time()
+gecs = getTestGecs()
+gecPairs = getGecPairs(gecs)
+gecPairsWithGec = {
+    g: tuple((i, p) for i, p in enumerate(gecPairs) if p.aGec == g or p.bGec == g)
+    for g in gecs
+    }
 
-<span class="c1"># 0 is not</span>
-<span class="n">h</span> <span class="o">=</span> <span class="n">cvxopt</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
-<span class="n">P</span> <span class="o">=</span> <span class="n">cvxopt</span><span class="o">.</span><span class="n">spmatrix</span><span class="p">([],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">)))</span>
-<span class="n">G</span> <span class="o">=</span> <span class="n">cvxopt</span><span class="o">.</span><span class="n">spmatrix</span><span class="p">([],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">)</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">)))</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">):</span>
-    <span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">p</span><span class="o">.</span><span class="n">inverseMassScalar</span>
+# 7 is arbitrary
+q = cvxopt.matrix(7.0, (len(gecPairs), 1))
 
-    <span class="c1"># div by mass converts impuse into velocity change</span>
-    <span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">inverseMassScalar</span>
-    <span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">),</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
-<span class="n">stepGecPositions</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">simulationSteps</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">i</span><span class="o">/</span><span class="n">simulationSteps</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;%&quot;</span><span class="p">,</span> <span class="s2">&quot;through&quot;</span><span class="p">,</span> <span class="n">testName</span><span class="p">)</span>
-    <span class="n">stepGecPositions</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
-    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gecs</span><span class="p">:</span>
-        <span class="n">stepGecPositions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">position</span><span class="p">))</span>
-    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">):</span>
-        <span class="n">cushion</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">getVelocityCushion</span><span class="p">()</span>
-        <span class="n">q</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">cushion</span>
-        <span class="n">h</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">cushion</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">otherP</span> <span class="ow">in</span> <span class="n">gecPairsWithGec</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">aGec</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">k</span><span class="p">:</span>
-                <span class="n">scalar</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">getImpulseToVelocityScalar</span><span class="p">(</span><span class="n">otherP</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">aGec</span><span class="p">)</span>
-                <span class="n">doubleScalar</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">scalar</span>
-                <span class="n">P</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">doubleScalar</span>
-                <span class="n">P</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">doubleScalar</span>
-                <span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">scalar</span>
-                <span class="n">G</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">scalar</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">otherP</span> <span class="ow">in</span> <span class="n">gecPairsWithGec</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">bGec</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">k</span><span class="p">:</span>
-                <span class="n">scalar</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">getImpulseToVelocityScalar</span><span class="p">(</span><span class="n">otherP</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bGec</span><span class="p">)</span>
-                <span class="n">doubleScalar</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">scalar</span>
-                <span class="n">P</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">doubleScalar</span>
-                <span class="n">P</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">doubleScalar</span>
-                <span class="n">G</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">scalar</span>
-                <span class="n">G</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">scalar</span>
-    <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">impulse</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">gecPairs</span><span class="p">,</span> <span class="n">cvxopt</span><span class="o">.</span><span class="n">solvers</span><span class="o">.</span><span class="n">qp</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">G</span><span class="o">=</span><span class="n">G</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">h</span><span class="p">)[</span><span class="s2">&quot;x&quot;</span><span class="p">]):</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">applyImpulse</span><span class="p">(</span><span class="o">-</span><span class="n">impulse</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gecs</span><span class="p">:</span>
-        <span class="n">g</span><span class="o">.</span><span class="n">advance</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">gecPairs</span><span class="p">:</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">advance</span><span class="p">()</span>
-<span class="n">storeResults</span><span class="p">(</span><span class="n">gecs</span><span class="p">,</span> <span class="n">stepGecPositions</span><span class="p">,</span> <span class="n">testName</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">startTime</span><span class="p">)</span>
-</pre></div>
+# 0 is not
+h = cvxopt.matrix(0.0, (2*len(gecPairs), 1))
+P = cvxopt.spmatrix([], [], [], (len(gecPairs), len(gecPairs)))
+G = cvxopt.spmatrix([], [], [], (len(gecPairs)*2, len(gecPairs)))
+for i, p in enumerate(gecPairs):
+    P[i, i] = 2*p.inverseMassScalar
 
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt"></div>
-
-
-<div class="output_subarea output_text output_error">
-<pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">ModuleNotFoundError</span>                       Traceback (most recent call last)
-<span class="ansi-green-fg">&lt;ipython-input-2-ea6e97d7a32f&gt;</span> in <span class="ansi-cyan-fg">&lt;module&gt;</span>
-<span class="ansi-green-intense-fg ansi-bold">      3</span> <span class="ansi-green-fg">import</span> time
-<span class="ansi-green-intense-fg ansi-bold">      4</span> <span class="ansi-green-fg">import</span> json
-<span class="ansi-green-fg">----&gt; 5</span><span class="ansi-red-fg"> </span><span class="ansi-green-fg">import</span> cvxopt
-<span class="ansi-green-intense-fg ansi-bold">      6</span> cvxopt<span class="ansi-blue-fg">.</span>solvers<span class="ansi-blue-fg">.</span>options<span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">&#39;show_progress&#39;</span><span class="ansi-blue-fg">]</span> <span class="ansi-blue-fg">=</span> <span class="ansi-green-fg">False</span>
-<span class="ansi-green-intense-fg ansi-bold">      7</span> 
-
-<span class="ansi-red-fg">ModuleNotFoundError</span>: No module named &#39;cvxopt&#39;</pre>
-</div>
-</div>
+    # div by mass converts impuse into velocity change
+    G[i, i] = -p.inverseMassScalar
+    G[i+len(gecPairs), i] = -1.0
+stepGecPositions = []
+for i in range(simulationSteps):
+    print(str(round(i/simulationSteps*100, 2))+"%", "through", testName)
+    stepGecPositions.append([])
+    for g in gecs:
+        stepGecPositions[-1].append(tuple(g.position))
+    for j, p in enumerate(gecPairs):
+        cushion = p.getVelocityCushion()
+        q[j] = cushion
+        h[j] = cushion
+        for k, otherP in gecPairsWithGec[p.aGec]:
+            if j != k:
+                scalar = p.getImpulseToVelocityScalar(otherP, p.aGec)
+                doubleScalar = 2*scalar
+                P[j, k] = doubleScalar
+                P[k, j] = -doubleScalar
+                G[j, k] = -scalar
+                G[k, j] = scalar
+        for k, otherP in gecPairsWithGec[p.bGec]:
+            if j != k:
+                scalar = p.getImpulseToVelocityScalar(otherP, p.bGec)
+                doubleScalar = 2*scalar
+                P[j, k] = doubleScalar
+                P[k, j] = -doubleScalar
+                G[j, k] = -scalar
+                G[k, j] = scalar
+    for p, impulse in zip(gecPairs, cvxopt.solvers.qp(P, q, G=G, h=h)["x"]):
+        p.applyImpulse(-impulse)
+    for g in gecs:
+        g.advance()
+    for p in gecPairs:
+        p.advance()
+storeResults(gecs, stepGecPositions, testName, time.time()-startTime)</code></pre>
 
 </div>
 </div>
-
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
@@ -13518,7 +13487,7 @@ $$<ul>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="prompt input_prompt">In&nbsp;[2]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%</span><span class="k">load_ext</span> gams_magic
@@ -13532,7 +13501,7 @@ $$<ul>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">gams</span>
@@ -13686,7 +13655,7 @@ display   obj.l, h, pair_appliedImpulse.l;
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[4]:</div>
+    <div class="prompt output_prompt">Out[3]:</div>
 
 
 
@@ -13729,7 +13698,7 @@ display   obj.l, h, pair_appliedImpulse.l;
       <td>343</td>
       <td>QCP</td>
       <td>CONOPT</td>
-      <td>0.005</td>
+      <td>0.006</td>
     </tr>
   </tbody>
 </table>
@@ -13744,7 +13713,7 @@ display   obj.l, h, pair_appliedImpulse.l;
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[5]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%</span><span class="k">gams_pull</span> -d pair_appliedImpulse
@@ -13796,13 +13765,13 @@ Name: impulse, Length: 400, dtype: float64
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[5]:</div>
+    <div class="prompt output_prompt">Out[4]:</div>
 
 
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>&lt;matplotlib.axes._subplots.AxesSubplot at 0x7f8adc435a58&gt;</pre>
+<pre>&lt;matplotlib.axes._subplots.AxesSubplot at 0x7fb29c0311d0&gt;</pre>
 </div>
 
 </div>
@@ -13828,7 +13797,7 @@ Name: impulse, Length: 400, dtype: float64
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[6]:</div>
+<div class="prompt input_prompt">In&nbsp;[5]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">gams</span>
@@ -13983,7 +13952,7 @@ display   obj.l, h, pair_appliedImpulse.l;
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[6]:</div>
+    <div class="prompt output_prompt">Out[5]:</div>
 
 
 
@@ -14041,7 +14010,7 @@ display   obj.l, h, pair_appliedImpulse.l;
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[7]:</div>
+<div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%</span><span class="k">gams_pull</span> -d pair_appliedImpulse
@@ -14094,13 +14063,13 @@ Name: impulse, Length: 88, dtype: float64
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[7]:</div>
+    <div class="prompt output_prompt">Out[6]:</div>
 
 
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>&lt;matplotlib.axes._subplots.AxesSubplot at 0x7f8adb87f5f8&gt;</pre>
+<pre>&lt;matplotlib.axes._subplots.AxesSubplot at 0x7fb29b42e9b0&gt;</pre>
 </div>
 
 </div>
@@ -14157,7 +14126,7 @@ Name: impulse, Length: 88, dtype: float64
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[8]:</div>
+<div class="prompt input_prompt">In&nbsp;[7]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
@@ -14229,32 +14198,6 @@ Name: impulse, Length: 88, dtype: float64
 
 </div>
 </div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
-
-    </div>
-</div>
-</div>
-
 </div>
     </div>
   </div>
