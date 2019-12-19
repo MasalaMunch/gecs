@@ -60,8 +60,12 @@ class GecPair:
         self._appliedImpulse = 0
 
     def getVelocityCushion(self):
+        # if negative: how much you need to fix it in velocity units
+        # if positive: how much extra velocity
 
         return (
+            # distance component: vel needed to colide ina time stop
+
             self._distanceComponentOfVelocityCushion + 
             np.dot(self.bGec.velocity - self.aGec.velocity, self._direction)
             #^ negative => moving closer to each other, 
@@ -179,6 +183,7 @@ for i in range(simulationSteps):
 storeResults(gecs, stepGecPositions, testName, time.time()-startTime)
 
 testName = "optimal"
+# the part done in gams
 startTime = time.time()
 gecs = getTestGecs()
 gecPairs = getGecPairs(gecs)
@@ -186,12 +191,18 @@ gecPairsWithGec = {
     g: tuple((i, p) for i, p in enumerate(gecPairs) if p.aGec == g or p.bGec == g)
     for g in gecs
     }
+
+# 7 is arbitrary
 q = cvxopt.matrix(7.0, (len(gecPairs), 1))
+
+# 0 is not
 h = cvxopt.matrix(0.0, (2*len(gecPairs), 1))
 P = cvxopt.spmatrix([], [], [], (len(gecPairs), len(gecPairs)))
 G = cvxopt.spmatrix([], [], [], (len(gecPairs)*2, len(gecPairs)))
 for i, p in enumerate(gecPairs):
     P[i, i] = 2*p.inverseMassScalar
+
+    # div by mass converts impuse into velocity change
     G[i, i] = -p.inverseMassScalar
     G[i+len(gecPairs), i] = -1.0
 stepGecPositions = []
