@@ -129,8 +129,8 @@ with open('testGecsData.csv', mode='w') as csv_file:
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
 
-    for g in gecs:    
-        writer.writerow({'':'g1', 'inverseMass': g.inverseMass, 'radius': g.radius, 'color': g.color[0], 
+    for i,g in enumerate(gecs):    
+        writer.writerow({'':f"g{i+1}", 'inverseMass': g.inverseMass, 'radius': g.radius, 'color': g.color[0], 
         'velocityx': g.velocity[0], 'velocityy': g.velocity[1], 
         'accelerationx': g.acceleration[0], 'accelerationy': g.acceleration[1], 
         'positionx': g.position[0], 'positiony': g.position[1]})
